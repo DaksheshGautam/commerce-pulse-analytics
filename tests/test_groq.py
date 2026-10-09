@@ -37,6 +37,11 @@ def tool_call(name, args, id='call_1'):
         'name': name, 'arguments': args if isinstance(args, str) else json.dumps(args)}}
 
 
+def sourced_message(text, citations, sql_summary='', analyses=None):
+    return {'content': json.dumps({'analyses': analyses or [], 'sql_summary': sql_summary,
+        'statements': [{'text': text, 'citations': citations}] if text else []})}
+
+
 def client_with(responses, requests):
     def handle(request):
         requests.append(json.loads(request.content))
@@ -123,7 +128,7 @@ def test_document_search_keeps_embedding_client_separate(monkeypatch):
 
     monkeypatch.setattr('assistant.gemini.DocumentRetriever', Retriever)
     client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'shipped sales definition'})]},
-        {'content': 'Shipped sales are a sales proxy [D1].'}], requests)
+        sourced_message('Shipped sales are a sales proxy.', ['D1'])], requests)
     answer = AnalyticsAssistant(SETTINGS, Service(), client=client).ask('Define shipped sales')
     assert embedding_clients == [None]
     assert answer.kind == 'documentation' and answer.sources == sources
@@ -158,7 +163,7 @@ def test_rejected_document_answers_log_flags_without_response_text(caplog):
     retriever = SimpleNamespace(search=lambda query: sources)
     requests = []
     client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
-        {'content': 'Shipped sales are INR 69660658 [D1].'}], requests)
+        sourced_message('Shipped sales are INR 69660658.', ['D1'])], requests)
     answer = AnalyticsAssistant(SETTINGS, Service(), client=client, retriever=retriever).ask('Define shipped sales')
     assert 'could not verify' in answer.text
     assert 'numbers_valid=False' in caplog.text
@@ -171,22 +176,21 @@ def test_sourced_answer_requires_explicit_citation_fields_and_no_extra_requests(
     retriever = SimpleNamespace(search=lambda query: sources)
     requests = []
     client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
-        {'tool_calls': [tool_call('compose_answer', {'sql_summary': '', 'statements': [
-            {'text': 'Shipped sales are a sales proxy.', 'citations': ['D1']} ]}, 'call_2')]}], requests)
+        sourced_message('Shipped sales are a sales proxy.', ['D1'])], requests)
     answer = AnalyticsAssistant(SETTINGS, Service(), client=client, retriever=retriever).ask('Define shipped sales')
     assert answer.text == 'Shipped sales are a sales proxy. [D1]'
     assert answer.sources == sources and answer.api_calls == 3
-    assert requests[1]['tool_choice'] == 'required'
-    assert 'compose_answer' in [tool['function']['name'] for tool in requests[1]['tools']]
-    assert 'search_documents' not in [tool['function']['name'] for tool in requests[1]['tools']]
+    assert requests[1]['response_format']['json_schema']['strict'] is True
+    assert 'tools' not in requests[1] and 'tool_choice' not in requests[1]
+    schema = requests[1]['response_format']['json_schema']['schema']
+    assert schema['properties']['statements']['items']['properties']['citations']['items']['enum'] == ['D1']
 
 
 def test_sourced_answer_rejects_ids_absent_from_returned_passages():
     sources = [{'citation': 'D1', 'source': 'docs/metric_contract.md', 'text': 'Sales are a proxy.'}]
     requests = []
     client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
-        {'tool_calls': [tool_call('compose_answer', {'sql_summary': '', 'statements': [
-            {'text': 'Invented statement.', 'citations': ['D4']} ]}, 'call_2')]}], requests)
+        sourced_message('Invented statement.', ['D4'])], requests)
     answer = AnalyticsAssistant(SETTINGS, Service(), client=client,
         retriever=SimpleNamespace(search=lambda query: sources)).ask('Define shipped sales')
     assert 'Invented statement' not in answer.text and 'could not verify' in answer.text
@@ -197,10 +201,21 @@ def test_mixed_answer_keeps_sql_figures_separate_from_document_citations():
         'text': 'Shipped sales are a sales proxy.'}]
     requests = []
     client = client_with([{'tool_calls': [tool_call('query_analysis', {'analysis': 'overview'})]},
-        {'tool_calls': [tool_call('compose_answer', {
-            'sql_summary': 'Valued shipped sales are INR 200.', 'statements': [
-                {'text': 'Shipped sales are a sales proxy.', 'citations': ['D1']}]}, 'call_2')]}], requests)
+        sourced_message('Shipped sales are a sales proxy.', ['D1'], 'Valued shipped sales are INR 200.')], requests)
     answer = AnalyticsAssistant(SETTINGS, Service(), client=client,
         retriever=SimpleNamespace(search=lambda query: sources)).ask('Show shipped sales and explain its definition')
     assert answer.kind == 'analysis' and answer.sources == sources and answer.api_calls == 3
     assert answer.text == 'Valued shipped sales are INR 200.\n\nShipped sales are a sales proxy. [D1]'
+
+
+def test_structured_document_response_can_request_sql_before_answering():
+    sources = [{'citation': 'D1', 'source': 'docs/metric_contract.md', 'text': 'Sales are a proxy.'}]
+    requests, service = [], Service()
+    client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
+        sourced_message('', [], analyses=[{'analysis': 'overview', 'state': 'MAHARASHTRA'}]),
+        sourced_message('Sales are a proxy.', ['D1'], 'Shipped sales are INR 200.')], requests)
+    answer = AnalyticsAssistant(SETTINGS, service, client=client,
+        retriever=SimpleNamespace(search=lambda query: sources)).ask('Show sales in Maharashtra and explain its definition')
+    assert service.specs[0].state == 'MAHARASHTRA'
+    assert answer.kind == 'analysis' and answer.api_calls == 4
+    assert '200' in answer.text and '[D1]' in answer.text

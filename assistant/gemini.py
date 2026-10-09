@@ -355,12 +355,7 @@ class AnalyticsAssistant:
                 active_tools = TOOLS
                 provider_options = {}
                 if self.settings.provider == 'groq' and sources:
-                    active_tools = [item for item in TOOLS if item['name'] != 'search_documents'] + [
-                        tool('compose_answer', 'Finish the answer using retrieved project evidence. '
-                            'Each explanation statement must name its supporting D IDs. '
-                            'Use sql_summary only for verified SQL figures; otherwise leave it empty. '
-                            'If numerical evidence is still needed, run query_analysis first.', SourcedAnswer)]
-                    provider_options['require_tool'] = True
+                    provider_options['source_ids'] = [source['citation'] for source in sources]
                 response = self._client.interactions.create(model=self.settings.chat_model, store=False,
                     input=history, system_instruction=instruction, tools=active_tools, timeout=90,
                     generation_config={'temperature': 0, 'thinking_level': 'low', 'max_output_tokens': 4000},
@@ -368,6 +363,8 @@ class AnalyticsAssistant:
             except Exception as error:
                 code = getattr(error, 'status_code', None) or getattr(error, 'code', None)
                 provider = self.settings.provider_label
+                logger.warning('%s request failed: status=%s, error_type=%s',
+                    provider, code, type(error).__name__)
                 if code == 429:
                     message = f'{provider} quota or rate limit reached. Wait and retry, or use Query Explorer.'
                 elif code in (500, 502, 503, 504):
