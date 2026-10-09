@@ -29,6 +29,23 @@ class DocumentSearch(BaseModel):
     query: str = Field(min_length=3, max_length=1000)
 
 
+class SourceStatement(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    text: str = Field(min_length=1, max_length=1500)
+    citations: list[Literal['D1', 'D2', 'D3', 'D4']] = Field(min_length=1, max_length=4)
+
+
+class SourcedAnswer(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    sql_summary: str = Field(max_length=2000)
+    statements: list[SourceStatement] = Field(min_length=1, max_length=5)
+
+    def text(self):
+        explanation = ' '.join(item.text + ' [' + ', '.join(item.citations) + ']'
+            for item in self.statements)
+        return '\n\n'.join(part for part in (self.sql_summary, explanation) if part)
+
+
 LIMITATIONS = {
     'profit': 'The snapshot has no product cost or reliable refund ledger, so profit and margin cannot be calculated. I can analyse shipped sales value instead.',
     'retention': 'There is no customer identifier, so customer retention and lifetime value cannot be measured from this dataset.',
@@ -335,9 +352,19 @@ class AnalyticsAssistant:
                 break
             try:
                 api_calls += 1
+                active_tools = TOOLS
+                provider_options = {}
+                if self.settings.provider == 'groq' and sources:
+                    active_tools = [item for item in TOOLS if item['name'] != 'search_documents'] + [
+                        tool('compose_answer', 'Finish the answer using retrieved project evidence. '
+                            'Each explanation statement must name its supporting D IDs. '
+                            'Use sql_summary only for verified SQL figures; otherwise leave it empty. '
+                            'If numerical evidence is still needed, run query_analysis first.', SourcedAnswer)]
+                    provider_options['require_tool'] = True
                 response = self._client.interactions.create(model=self.settings.chat_model, store=False,
-                    input=history, system_instruction=instruction, tools=TOOLS, timeout=90,
-                    generation_config={'temperature': 0, 'thinking_level': 'low', 'max_output_tokens': 4000})
+                    input=history, system_instruction=instruction, tools=active_tools, timeout=90,
+                    generation_config={'temperature': 0, 'thinking_level': 'low', 'max_output_tokens': 4000},
+                    **provider_options)
             except Exception as error:
                 code = getattr(error, 'status_code', None) or getattr(error, 'code', None)
                 provider = self.settings.provider_label
@@ -377,6 +404,9 @@ class AnalyticsAssistant:
                 raise AssistantError('This question needs too many analyses. Please split it into smaller questions.', api_calls)
             for call in calls:
                 try:
+                    if call.name == 'compose_answer' and self.settings.provider == 'groq' and sources:
+                        item = SourcedAnswer.model_validate(call.arguments)
+                        return finish(item.text())
                     if call.name == 'request_clarification':
                         item = Clarification.model_validate(call.arguments)
                         return Answer(question, item.question, evidence, 'clarification', api_calls, input_tokens, output_tokens, retrieval_calls=retrieval_calls)

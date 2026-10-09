@@ -44,12 +44,12 @@ class GroqInteractions:
     def __init__(self, client):
         self.client = client
 
-    def create(self, *, model, input, system_instruction, tools, **kwargs):
+    def create(self, *, model, input, system_instruction, tools, require_tool=False, **kwargs):
         response = self.client.chat.completions.create(
             model=model, messages=groq_messages(input, system_instruction),
             tools=[{'type': 'function', 'function': {key: tool[key]
                 for key in ('name', 'description', 'parameters')}} for tool in tools],
-            tool_choice='auto', parallel_tool_calls=False,
+            tool_choice='required' if require_tool else 'auto', parallel_tool_calls=False,
             temperature=0, reasoning_effort='low', include_reasoning=False,
             max_completion_tokens=2048)
         if not response.choices:

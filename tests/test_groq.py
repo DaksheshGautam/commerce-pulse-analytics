@@ -163,3 +163,44 @@ def test_rejected_document_answers_log_flags_without_response_text(caplog):
     assert 'could not verify' in answer.text
     assert 'numbers_valid=False' in caplog.text
     assert '69660658' not in caplog.text and SETTINGS.groq_api_key not in caplog.text
+
+
+def test_sourced_answer_requires_explicit_citation_fields_and_no_extra_requests():
+    sources = [{'citation': 'D1', 'source': 'docs/metric_contract.md',
+        'text': 'Shipped sales are a sales proxy.'}]
+    retriever = SimpleNamespace(search=lambda query: sources)
+    requests = []
+    client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
+        {'tool_calls': [tool_call('compose_answer', {'sql_summary': '', 'statements': [
+            {'text': 'Shipped sales are a sales proxy.', 'citations': ['D1']} ]}, 'call_2')]}], requests)
+    answer = AnalyticsAssistant(SETTINGS, Service(), client=client, retriever=retriever).ask('Define shipped sales')
+    assert answer.text == 'Shipped sales are a sales proxy. [D1]'
+    assert answer.sources == sources and answer.api_calls == 3
+    assert requests[1]['tool_choice'] == 'required'
+    assert 'compose_answer' in [tool['function']['name'] for tool in requests[1]['tools']]
+    assert 'search_documents' not in [tool['function']['name'] for tool in requests[1]['tools']]
+
+
+def test_sourced_answer_rejects_ids_absent_from_returned_passages():
+    sources = [{'citation': 'D1', 'source': 'docs/metric_contract.md', 'text': 'Sales are a proxy.'}]
+    requests = []
+    client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
+        {'tool_calls': [tool_call('compose_answer', {'sql_summary': '', 'statements': [
+            {'text': 'Invented statement.', 'citations': ['D4']} ]}, 'call_2')]}], requests)
+    answer = AnalyticsAssistant(SETTINGS, Service(), client=client,
+        retriever=SimpleNamespace(search=lambda query: sources)).ask('Define shipped sales')
+    assert 'Invented statement' not in answer.text and 'could not verify' in answer.text
+
+
+def test_mixed_answer_keeps_sql_figures_separate_from_document_citations():
+    sources = [{'citation': 'D1', 'source': 'docs/metric_contract.md',
+        'text': 'Shipped sales are a sales proxy.'}]
+    requests = []
+    client = client_with([{'tool_calls': [tool_call('query_analysis', {'analysis': 'overview'})]},
+        {'tool_calls': [tool_call('compose_answer', {
+            'sql_summary': 'Valued shipped sales are INR 200.', 'statements': [
+                {'text': 'Shipped sales are a sales proxy.', 'citations': ['D1']}]}, 'call_2')]}], requests)
+    answer = AnalyticsAssistant(SETTINGS, Service(), client=client,
+        retriever=SimpleNamespace(search=lambda query: sources)).ask('Show shipped sales and explain its definition')
+    assert answer.kind == 'analysis' and answer.sources == sources and answer.api_calls == 3
+    assert answer.text == 'Valued shipped sales are INR 200.\n\nShipped sales are a sales proxy. [D1]'
