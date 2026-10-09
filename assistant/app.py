@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from assistant.config import ROOT, Settings
-from assistant.gemini import AssistantError, GeminiAssistant
+from assistant.gemini import AssistantError, AnalyticsAssistant
 from assistant.queries import TITLES, QueryService, QuerySpec
 from assistant.rag import DocumentRetriever, RetrievalError, SOURCES
 
@@ -144,7 +144,7 @@ with st.container(key='summary_kpis'):
 st.caption('Full snapshot KPIs · shipped value is a sales proxy · cancellation is a line rate')
 with st.container(key='analysis_workspace'):
     api_counter = st.empty()
-    chat, explorer, guide = st.tabs(['Ask Gemini', 'Query Explorer', 'Metric Guide'])
+    chat, explorer, guide = st.tabs([f'Ask {settings.provider_label}', 'Query Explorer', 'Metric Guide'])
 
 
 def update_usage_counter():
@@ -155,7 +155,7 @@ def update_usage_counter():
 
 update_usage_counter()
 with chat:
-    if not settings.gemini_ready:
+    if not settings.chat_ready:
         st.info('AI chat is currently unavailable. Query Explorer provides the same reviewed SQL analyses without an API key.')
     st.caption('Try: “Compare May and June on the same days”, “How were duplicates handled?”, or “Show Kurta sales in Maharashtra and explain how sales are defined.”')
     for index, answer in enumerate(st.session_state.messages):
@@ -170,13 +170,13 @@ with chat:
             searches = 'document search' if retrieval_calls == 1 else 'document searches'
             st.caption(f'{answer.api_calls} API requests ({retrieval_calls} {searches}) · {answer.input_tokens:,} input / {answer.output_tokens:,} output LLM tokens')
     question = st.chat_input('Ask about this sales snapshot…', max_chars=2000,
-        disabled=not settings.gemini_ready or st.session_state.api_calls >= settings.max_requests)
+        disabled=not settings.chat_ready or st.session_state.api_calls >= settings.max_requests)
     if question:
         with st.chat_message('user'):
             st.write(question)
         try:
             with st.spinner('Checking SQL evidence and relevant project documents…'):
-                answer = GeminiAssistant(settings, service).ask(question,
+                answer = AnalyticsAssistant(settings, service).ask(question,
                     [item.context() for item in st.session_state.messages],
                     request_budget=settings.max_requests - st.session_state.api_calls)
             st.session_state.api_calls += answer.api_calls
@@ -190,7 +190,7 @@ with chat:
 
 with explorer:
     st.subheader('Explore the reviewed analyses')
-    st.caption('Run the same SQL tools directly, with explicit filters and no Gemini requests.')
+    st.caption('Run the same SQL tools directly, with explicit filters and no AI requests.')
     with st.form('explorer'):
         analysis = st.selectbox('Analysis', list(TITLES), format_func=TITLES.get)
         a, b, c = st.columns(3)
@@ -224,7 +224,7 @@ with explorer:
 
 with guide:
     st.subheader('How answers are grounded')
-    st.write('MySQL calculates figures. Document retrieval finds relevant definitions, cleaning decisions and dataset notes. Gemini combines the evidence into an explanation with source citations.')
+    st.write('MySQL calculates figures. Document retrieval finds relevant definitions, cleaning decisions and dataset notes. The AI assistant combines the evidence into an explanation with source citations.')
     try:
         knowledge = DocumentRetriever(settings)
         st.caption(f'Knowledge base ready · {len(SOURCES)} project documents · {len(knowledge.chunks)} searchable passages')
@@ -241,7 +241,7 @@ with guide:
 
 
 with st.expander('About this project · Power BI dashboard'):
-    st.write('Commerce Pulse by Dakshesh Gautam. A portfolio project connecting Python data preparation, a MySQL star schema, reviewed SQL analyses, Power BI and a Gemini assistant with cited project documentation.')
+    st.write('Commerce Pulse by Dakshesh Gautam. A portfolio project connecting Python data preparation, a MySQL star schema, reviewed SQL analyses, Power BI and an AI assistant with cited project documentation.')
     st.write('The dataset is a historical sales snapshot from 2022. Figures describe the exported data; they are not live Amazon sales or audited accounting revenue.')
     st.link_button('View code on GitHub', 'https://github.com/DaksheshGautam/commerce-pulse-analytics')
     for name, caption in [('01_sales_pulse', 'Sales Pulse'), ('02_product_drivers', 'Product Drivers'),

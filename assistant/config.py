@@ -20,6 +20,9 @@ class Settings:
     embedding_model: str = 'gemini-embedding-001'
     ssl_ca_pem: str = field(repr=False, default='')
     ssl_ca_file: str = ''
+    provider: str = 'gemini'
+    groq_api_key: str = field(repr=False, default='')
+    groq_model: str = 'openai/gpt-oss-120b'
 
     @classmethod
     def load(cls):
@@ -35,11 +38,28 @@ class Settings:
             max_requests=max(1, min(int(get('ASSISTANT_MAX_REQUESTS', '30')), 100)),
             embedding_model=get('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
             ssl_ca_pem=get('MYSQL_SSL_CA_PEM'), ssl_ca_file=get('MYSQL_SSL_CA_FILE'),
+            provider=get('AI_PROVIDER', 'groq' if get('GROQ_API_KEY') else 'gemini').strip().lower(),
+            groq_api_key=get('GROQ_API_KEY'), groq_model=get('GROQ_MODEL', 'openai/gpt-oss-120b'),
         )
 
     @property
     def gemini_ready(self):
         return bool(self.api_key.strip()) and not self.api_key.startswith(('your_', 'replace_'))
+
+    @property
+    def chat_ready(self):
+        if self.provider == 'groq':
+            key = self.groq_api_key.strip()
+            return bool(key) and not key.startswith(('your_', 'replace_'))
+        return self.provider == 'gemini' and self.gemini_ready
+
+    @property
+    def provider_label(self):
+        return {'groq': 'Groq', 'gemini': 'Gemini'}.get(self.provider, 'AI')
+
+    @property
+    def chat_model(self):
+        return self.groq_model if self.provider == 'groq' else self.model
 
     def mysql_connect_args(self):
         options = {'connect_timeout': 8, 'read_timeout': 20, 'write_timeout': 8,

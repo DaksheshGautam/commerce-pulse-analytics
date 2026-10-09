@@ -9,7 +9,7 @@ By **Dakshesh Gautam**. An analytics portfolio project that takes a historical e
 ## Explore
 
 - **Query Explorer:** 15 reviewed analyses with category, state, fulfillment, customer type and date filters. Charts, CSV downloads and the executed SQL accompany every result.
-- **Ask Gemini:** bounded tool calls combine SQL results with cited project documentation. Unsupported profit, customer retention and causal questions are identified explicitly. Provider quota limits can temporarily interrupt chat; Query Explorer remains available.
+- **Ask Groq:** GPT-OSS 120B uses bounded tool calls to combine SQL results with cited project documentation. Gemini provides document-search embeddings. Unsupported profit, customer retention and causal questions are identified explicitly. Provider quota limits can temporarily interrupt chat; Query Explorer remains available.
 - **Metric Guide:** definitions, cleaning decisions and data limitations.
 - **Power BI:** four dashboard previews available inside the app.
 
@@ -25,6 +25,6 @@ Deployment checks passed: 26 local checks and all 14 baseline analyses on Aiven 
 
 ## Run and deploy
 
-Use Python 3.12 or 3.13, `pip install -r requirements.txt`, configure private credentials in `.env`, then run `streamlit run streamlit_app.py`. Cloud setup is documented in [docs/deployment.md](docs/deployment.md). AI chat requires a Gemini API key; the SQL explorer does not.
+Use Python 3.12 or 3.13, `pip install -r requirements.txt`, configure private credentials in `.env`, then run `streamlit run streamlit_app.py`. Cloud setup is documented in [docs/deployment.md](docs/deployment.md). Set `AI_PROVIDER=groq` and `GROQ_API_KEY` for chat; keep `GEMINI_API_KEY` for semantic document search. The SQL explorer needs no AI key. Existing installations can select `AI_PROVIDER=gemini` to use the earlier chat provider.
 
-Do not use a billed Gemini project if you need a strict free-only deployment. The session allowance is not an account-wide spending cap. Free hosting may sleep while inactive.
+Use Groq's Free plan and an unbilled Gemini project for a free-only deployment. Both have quotas; Groq request limits also include token limits, and one visitor question can use several requests. The session allowance is not an account-wide spending cap. Free hosting may sleep while inactive.

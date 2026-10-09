@@ -83,6 +83,8 @@ def normalized(vector):
 
 
 def make_client(settings):
+    if not settings.gemini_ready:
+        raise RetrievalError('Document search needs GEMINI_API_KEY for embeddings. Groq analytical chat and Query Explorer remain available.')
     from google import genai
     from google.genai import types
     return genai.Client(api_key=settings.api_key,
