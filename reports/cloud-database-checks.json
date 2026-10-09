@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "mysql_version": "8.4.11",
+  "tls_cipher": "TLS_AES_256_GCM_SHA384",
+  "select_only_account": true,
+  "read_only_session": true,
+  "analyses": {
+    "overview": true,
+    "order_cancellation_and_aov": true,
+    "monthly_trend": true,
+    "comparable_may_june": true,
+    "category_performance": true,
+    "category_decline_contribution": true,
+    "state_performance": true,
+    "fulfillment_operations": true,
+    "status_distribution": true,
+    "b2b_segment": true,
+    "sku_rank_within_category": true,
+    "daily_running_value": true,
+    "promotion_association": true,
+    "data_quality": true
+  },
+  "estimated_table_rows": {
+    "dim_date": 365,
+    "dim_geography": 14232,
+    "dim_product": 7035,
+    "dim_status": 13,
+    "fact_order_lines": 127435
+  },
+  "database_bytes": 51068928,
+  "provider_calls": 0
+}
