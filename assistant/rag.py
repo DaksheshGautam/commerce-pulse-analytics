@@ -167,8 +167,12 @@ class DocumentRetriever:
         return hits
 
 
+CITATION_PATTERN = r'\[D\d+(?:\s*,\s*D\d+)*\]'
+
+
 def citations_in(text):
-    return set(re.findall(r'\[(D\d+)\]', text))
+    return {label for group in re.findall(CITATION_PATTERN, text)
+            for label in re.findall(r'D\d+', group)}
 
 
 def cited_sources(text, sources):

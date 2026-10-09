@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from .config import ROOT, Settings
 from .queries import QuerySpec, QueryService, TITLES
-from .rag import DocumentRetriever, RetrievalError, cited_sources, document_fallback
+from .rag import DocumentRetriever, RetrievalError, cited_sources, document_fallback, CITATION_PATTERN
 from .ranking import product_ranking_requested, product_ranking_scope, simple_product_ranking
 
 
@@ -102,7 +102,7 @@ def numeric_claims_supported(message, evidence, sources=None):
                 allowed.update(float(part) for part in result['filters'][bound].split('-'))
     # Structural/document numbers may be quoted literally; financial figures and
     # percentages continue to require SQL. Citation IDs are never numeric claims.
-    message = re.sub(r'\[D\d+\]', '', message)
+    message = re.sub(CITATION_PATTERN, '', message)
     if sources and not re.search(r'₹|\bINR\b|%|\b(?:crore|lakh|percent)\b', message, re.I):
         for source in sources:
             allowed.update(abs(float(value.replace(',', ''))) for value in
@@ -227,11 +227,11 @@ def status_reasons_only_requested(question):
 
 def detach_sql_citations(text):
     """Do not attribute SQL-derived numeric metrics to a definition document."""
-    parts = re.split(r'(\n+|(?<=[.!?])\s+(?!\[D\d+\]))', text)
+    parts = re.split(r'(\n+|(?<=[.!?])\s+(?!' + CITATION_PATTERN + r'))', text)
     for i in range(0, len(parts), 2):
-        plain = re.sub(r'\[D\d+\]', '', parts[i])
+        plain = re.sub(CITATION_PATTERN, '', parts[i])
         if re.search(r'\d', plain) and re.search(r'₹|%|\b(?:INR|crore|lakh|percent|sales|revenue|orders|units)\b', plain, re.I):
-            parts[i] = re.sub(r'\s*\[D\d+\]', '', parts[i])
+            parts[i] = re.sub(r'\s*' + CITATION_PATTERN, '', parts[i])
     return ''.join(parts)
 
 
@@ -307,7 +307,7 @@ class GeminiAssistant:
                         for state in self.service.catalog['states'] if state))
                 if (invalid_ids or used is None or not text or (sources and documentation_requested(question) and not used)
                         or wrong_state
-                        or re.search(r'\[(?!D\d+\])[^\]\n]+\](?!\()', text)
+                        or re.search(r'\[(?!D\d+(?:\s*,\s*D\d+)*\])[^\]\n]+\](?!\()', text)
                         or not numeric_claims_supported(text, evidence, used)):
                     text, used = fallback_summary(evidence, question), []
                 kind = 'analysis'
