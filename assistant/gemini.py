@@ -1,6 +1,7 @@
 """Bounded AI function calling; SQL evidence stays separate from prose."""
 from dataclasses import dataclass, field
 import json
+import logging
 import re
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -9,6 +10,8 @@ from .queries import QuerySpec, QueryService, TITLES
 from .rag import DocumentRetriever, RetrievalError, cited_sources, document_fallback, CITATION_PATTERN
 from .ranking import product_ranking_requested, product_ranking_scope, simple_product_ranking
 from .providers import make_chat_client
+
+logger = logging.getLogger(__name__)
 
 
 class Clarification(BaseModel):
@@ -314,7 +317,11 @@ class AnalyticsAssistant:
                     text, used = fallback_summary(evidence, question), []
                 kind = 'analysis'
             elif sources:
-                if not used or not text or not numeric_claims_supported(text, [], used):
+                numbers_valid = numeric_claims_supported(text, [], used)
+                if not used or not text or not numbers_valid:
+                    logger.warning('Document answer rejected: citations=%s, numbers_valid=%s, empty=%s',
+                        'unknown' if used is None else 'missing' if not used else 'valid',
+                        numbers_valid, not bool(text))
                     text, used = document_fallback(sources), sources
                 kind = 'documentation'
             else:

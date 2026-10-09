@@ -150,3 +150,16 @@ def test_environment_configuration_selects_groq(monkeypatch):
     assert settings.chat_model == 'openai/gpt-oss-120b'
     monkeypatch.setenv('AI_PROVIDER', 'gemini')
     assert Settings.load().provider == 'gemini'
+
+
+def test_rejected_document_answers_log_flags_without_response_text(caplog):
+    sources = [{'citation': 'D1', 'source': 'docs/metric_contract.md',
+        'text': 'The shipped-sales total is INR 69660658.'}]
+    retriever = SimpleNamespace(search=lambda query: sources)
+    requests = []
+    client = client_with([{'tool_calls': [tool_call('search_documents', {'query': 'sales definition'})]},
+        {'content': 'Shipped sales are INR 69660658 [D1].'}], requests)
+    answer = AnalyticsAssistant(SETTINGS, Service(), client=client, retriever=retriever).ask('Define shipped sales')
+    assert 'could not verify' in answer.text
+    assert 'numbers_valid=False' in caplog.text
+    assert '69660658' not in caplog.text and SETTINGS.groq_api_key not in caplog.text
