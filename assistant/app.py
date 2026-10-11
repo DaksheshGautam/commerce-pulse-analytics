@@ -244,6 +244,6 @@ with st.expander('About this project · Power BI dashboard'):
     st.write('Commerce Pulse by Dakshesh Gautam. A portfolio project connecting Python data preparation, a MySQL star schema, reviewed SQL analyses, Power BI and an AI assistant with cited project documentation.')
     st.write('The dataset is a historical sales snapshot from 2022. Figures describe the exported data; they are not live Amazon sales or audited accounting revenue.')
     st.link_button('View code on GitHub', 'https://github.com/DaksheshGautam/commerce-pulse-analytics')
-    for name, caption in [('01_sales_pulse', 'Sales Pulse'), ('02_product_drivers', 'Product Drivers'),
+    for name, caption in [('01_sales_pulse', 'Sales'), ('02_product_drivers', 'Product Drivers'),
                           ('03_market_demand', 'Market Demand'), ('04_operations', 'Operations')]:
         st.image(str(ROOT / 'reports/screenshots_dark' / (name + '.png')), caption=caption, width='stretch')

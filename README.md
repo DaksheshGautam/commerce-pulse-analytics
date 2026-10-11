@@ -4,7 +4,7 @@ By **Dakshesh Gautam**. An analytics portfolio project that takes a historical e
 
 **[Open the live app](https://dakshesh-commerce-pulse.streamlit.app/)**
 
-![Sales Pulse dashboard](reports/screenshots_dark/01_sales_pulse.png)
+![Sales dashboard](reports/screenshots_dark/01_sales_pulse.png)
 
 ## Explore
 
