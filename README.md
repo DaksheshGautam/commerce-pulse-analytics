@@ -11,7 +11,7 @@ By **Dakshesh Gautam**. An analytics portfolio project that takes a historical e
 - **Query Explorer:** 15 reviewed analyses with category, state, fulfillment, customer type and date filters. Charts, CSV downloads and the executed SQL accompany every result.
 - **Ask Groq:** GPT-OSS 120B uses bounded tool calls to combine SQL results with cited project documentation. Gemini provides document-search embeddings. Unsupported profit, customer retention and causal questions are identified explicitly. Provider quota limits can temporarily interrupt chat; Query Explorer remains available.
 - **Metric Guide:** definitions, cleaning decisions and data limitations.
-- **Power BI:** four dashboard previews available inside the app.
+- **Power BI:** four dashboard previews available inside the app. [Download the editable Power BI report](powerbi/CommercePulse.pbix) and open it in Power BI Desktop.
 
 ## Data and methods
 
@@ -19,7 +19,7 @@ The Amazon snapshot covers **31 March–29 June 2022**. The model retains 128,97
 
 Python prepares a MySQL star schema with four dimensions and one fact table. Bound SQL parameters, an allowlisted analysis registry, a SELECT-only database account and read-only sessions constrain database access. Remote connections validate the server certificate and hostname. Document retrieval uses four project documents and a prebuilt 17-passage index; generated prose is checked against numeric evidence and known citation IDs.
 
-This repository contains the web deployment. Raw data, database backups and credentials stay outside GitHub. Dataset attribution: [E-Commerce Sales Dataset on Kaggle](https://www.kaggle.com/datasets/thedevastator/unlock-profits-with-e-commerce-sales-data).
+This repository contains the web deployment and an editable Power BI report with an imported data model from the public dataset. Raw source CSV files, database backups and credentials stay outside GitHub. Dataset attribution: [E-Commerce Sales Dataset on Kaggle](https://www.kaggle.com/datasets/thedevastator/unlock-profits-with-e-commerce-sales-data).
 
 Deployment checks passed: 26 local checks and all 14 baseline analyses on Aiven MySQL 8.4.11, using certificate-verified TLS and a SELECT-only reader. Results are recorded in [reports/deployment-checks.json](reports/deployment-checks.json) and [reports/cloud-database-checks.json](reports/cloud-database-checks.json).
 
