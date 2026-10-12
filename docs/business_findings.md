@@ -1,24 +1,143 @@
-# Analytics report
+# E-Commerce Sales Analytics Report
 
-## Scope
+**Prepared by Dakshesh Gautam | Report prepared 13 October 2026**
 
-A descriptive sales and operations review of 128,969 retained Amazon order lines, 120,378 orders, and 7,195 SKUs from 31 March–29 June 2022. Valued shipped sales are ₹6.97 crore, with 107,746 units and a complete-order AOV of ₹695.03. This is an educational analysis of a public snapshot, not a live business audit.
+**Data period: 31 March to 29 June 2022 | Descriptive analysis of a public historical snapshot**
 
-## Evidence and decisions
+## 1. Executive summary and objectives
 
-| Finding | Evidence from SQL | Proposed next action |
-|---|---|---|
-| Comparable-period value declined 6.72% | May 1–29 ₹2.19 crore; June 1–29 ₹2.04 crore. Valued orders fell from 30,903 to 28,850 (6.64%). | Investigate demand, availability and acquisition changes before attributing the decline to pricing. Collect traffic and inventory history. |
-| Sets drive both value and most of the decline | Set contributes 49.86% of shipped value and ₹10.03 lakh of the ₹14.73 lakh net comparable decline (68.08%). Top contributes another 22.91%; Kurta offsets part of the decline. Net contribution shares can exceed 100% because some categories increase. | Prioritize Set SKU availability and demand review; compare top-volume products and replenishment against orders. This dataset alone cannot prove stockouts. |
-| Value is concentrated geographically | Maharashtra ₹1.20 crore; Karnataka ₹94.36 lakh; together 30.71% of shipped value. | Start regional assortment and fulfillment planning with these states, then validate costs and service performance before allocating spend. |
-| Merchant lines show a higher cancellation rate | Merchant 17.47% of 39,277 lines; Amazon 12.79% of 89,692 lines. Difference: 4.68 percentage points. | Audit merchant availability/order handling. Stratify by category, region and service level to test whether the gap persists. This association does not establish a causal fulfillment effect. |
-| Return visibility differs across fulfillment | Returned/returning statuses occur on 5.34% of Merchant lines and none of Amazon lines in this snapshot. | Verify status reporting and refund coverage before concluding that Amazon has zero returns. |
-| Quality gaps can change business interpretation | 7,792 retained missing amounts, 115 unvalued shipped lines, 93 courier conflicts and six excluded duplicate copies. | Add mandatory amount/currency checks, status reconciliation and export duplicate checks before operational use. |
+This descriptive analysis examines a public Amazon sales export covering 31 March to 29 June 2022. It reports 128,969 retained order lines across 120,378 orders. These are historical exported records, not a live Amazon feed or audited accounting results. [E1, M1]
 
-## Limitations
+| Measure | Observed value | Evidence |
+| --- | --- | --- |
+| Valued shipped sales | INR 69,660,658 (6.97 crore) | E1 |
+| Valued shipped orders / units | 100,227 / 107,746 | E1 |
+| Complete-order AOV | INR 695.03 | E8 |
+| Cancelled-line rate | 14.21% (18,329 of 128,969 lines) | E1 |
 
-No costs or refund ledger support profit analysis; the title of the source dataset does not supply those fields. Cancellation recorded amounts are not measurable lost revenue. No customer identifier supports retention or repeat-customer claims. Partial months, status snapshots, duplicate assumptions and unvalued orders are visible in the metric contract. Recommendations are hypotheses for follow-up, not measured improvements already delivered.
+The matched May/June comparison shows a 6.72% decline in shipped value. Set accounts for 68.08% of that net decline. Maharashtra and Karnataka account for 30.71% of snapshot shipped value. Merchant cancellation rates are 4.68 percentage points higher than Amazon rates. These observations describe the export; they do not establish causes. [E2-E6]
 
-## Inspect the evidence
+### Problem statement
 
-Use Query Explorer in the live app to inspect the overview, comparable May/June periods, category contributions, regional performance, fulfillment operations and data-quality analyses. Each result includes the executed SQL, metric notes and a CSV download. Query definitions are also available in sql/02_business_analysis.sql.
+How did shipped sales value change between comparable periods, which product categories contributed to that change, where was shipped value concentrated, and how did observed cancellation and data-quality patterns differ?
+
+### Objectives
+
+1. Define consistent measures and compare equal calendar windows. 2. Quantify category contributions and regional value shares. 3. Compare fulfillment outcomes using explicit denominators. 4. Document quality gaps and evidence limits, then propose follow-up investigations.
+
+## 2. Dataset, methodology and metric definitions
+
+The main analytical dataset is the Amazon sales report from the public E-Commerce Sales Dataset on Kaggle. All 128,975 source lines are retained in storage; the analytical view excludes six flagged later copies, leaving 128,969 lines. Other source files were not joined into the main model without demonstrated compatible grains. [M1, M2]
+
+### Preparation and analysis
+
+Identifiers were treated as text; dates were parsed explicitly. Shipping-state aliases and case were normalized. Missing currency and amounts were preserved, not replaced by zero. Known amounts were reconciled using integer paise. Zero-quantity and zero-value records were retained. Courier disagreements were flagged without overwriting source order status. [M2]
+
+The model uses one order-line fact table and Date, Product, Geography and Status dimensions. SQL aggregates provide the evidence exported in E1-E8; Power BI displays the measures and the app exposes reviewed SQL analyses. Relationships and metric inclusion rules are documented in the project. [M1, M2, Q1]
+
+| Metric | Definition |
+| --- | --- |
+| Shipped value | Known-INR, positive-quantity lines in Shipped, Delivered to Buyer, Picked Up or Out for Delivery status. Missing amounts stay null; known zero amounts remain included. |
+| Complete-order AOV | Eligible shipped value divided by eligible distinct orders, excluding orders with positive-quantity unvalued shipped lines. |
+| Cancelled-line rate | Strict Cancelled lines divided by all retained lines. This is not an order-level rate. |
+| Comparable change | May 1-29 versus June 1-29. Each window contains 29 calendar days. |
+
+Shipped value is a sales proxy, not recognized or collected revenue. March contains one observed day and June 29; unequal full-month totals are not like-for-like growth measures. Category distinct-order counts may overlap and must not be summed. [M1]
+
+## 3. Sales: matched-period change
+
+![Figure 1. Sales dashboard from the supplied Power BI export.](../reports/screenshots_dark/01_sales_pulse.png)
+
+Shipped value was INR 21,906,300 in May 1-29 and INR 20,433,336 in June 1-29. The difference is INR -1,472,964, or -6.72%, calculated as (June / May - 1) x 100. Valued orders declined from 30,903 to 28,850 (-6.64%). [E2]
+
+This establishes a decline in observed shipped value over matched windows. The dataset does not establish whether traffic, product availability, pricing or acquisition changes caused it. Those explanations require additional evidence. [M1]
+
+Dashboard figures are rounded for display. This report uses the saved SQL outputs for exact amounts and percentage calculations. Full-snapshot KPIs and the matched-period comparison use different time scopes.
+
+## 4. Products: contributions to the net decline
+
+![Figure 2. Product drivers dashboard from the supplied Power BI export.](../reports/screenshots_dark/02_product_drivers.png)
+
+Set contributes INR 34,733,734, or 49.86%, of full-snapshot shipped value. In the matched comparison, its change is INR -1,002,743, accounting for 68.08% of the INR 1,472,964 net decline. Top declines by INR 337,502 (22.91% of the net decline), and Western Dress by INR 211,569 (14.36%). [E3, E4]
+
+Kurta shows a positive change and offsets part of the decline. Contribution is calculated as category decline divided by the total net decline; positive category growth offsets decreases, so decline contributions across categories can sum above 100%. [E3]
+
+The result identifies where to investigate the observed change. It does not demonstrate stockouts, changing customer preferences or product profitability. Product availability and demand-driver explanations remain untested. [M1]
+
+## 5. Markets: observed regional concentration
+
+![Figure 3. Market demand dashboard from the supplied Power BI export.](../reports/screenshots_dark/03_market_demand.png)
+
+Maharashtra has INR 11,954,553 of shipped value, followed by Karnataka at INR 9,436,223. Their combined INR 21,390,776 is 30.71% of full-snapshot shipped value. The SQL results rank Maharashtra first by this measure. [E5, E1]
+
+These are shipping-destination totals. They describe the value distribution in the export and do not establish market size, profitability, advertising efficiency or unmet regional demand. Normalized labels retain Unknown and Unmapped cases rather than inferring locations. [M1, M2]
+
+Proposed follow-up: compare regional assortment, service outcomes and fulfillment costs before making allocation decisions. This is an investigation suggested by concentration, not evidence that reallocating spend will improve performance.
+
+## 6. Operations and data quality
+
+![Figure 4. Operations dashboard from the supplied Power BI export.](../reports/screenshots_dark/04_operations.png)
+
+Merchant has 6,861 cancelled lines among 39,277 lines (17.47%); Amazon has 11,468 among 89,692 (12.79%). The difference is 4.68 percentage points. These are unadjusted descriptive rates and do not prove that fulfillment type caused the difference. [E6]
+
+Returned/returning statuses appear on 5.34% of Merchant lines and 0% of Amazon lines in this export. A zero recorded rate does not prove zero real returns; status and refund coverage must be checked. [E6, M1]
+
+The retained data contains 7,792 missing-amount lines, 115 unvalued shipped lines and 93 courier conflicts. Six flagged duplicate copies are excluded from analysis. Missing amounts remain missing; cancellation amounts are not treated as recoverable lost revenue. [E1, E7, M1, M2]
+
+## 7. Proposed investigations and limitations
+
+The priorities below are proposed based on the observations. No investigation, intervention or improvement is claimed to have been completed.
+
+| Priority | Proposed investigation | Evidence / additional data needed |
+| --- | --- | --- |
+| 1 | Reconcile value completeness, status coverage and courier conflicts. | E7; source-system status definitions, payment and refund records. |
+| 2 | Investigate the Set-category decline. | E3; SKU availability, inventory history, traffic and acquisition data. |
+| 3 | Check whether the cancellation gap persists within comparable groups. | E6; category, region and service-level stratification. |
+| 4 | Assess regional assortment and fulfillment opportunities. | E5; regional costs, service outcomes and demand evidence. |
+
+### Limitations
+
+The main report has no transaction costs, reliable refund ledger, payment reconciliation, stable customer identifier, inventory history or promised-delivery dates. Profit, customer retention, delivery SLA, stockout effects and causal promotion ROI cannot be established from these data. [M1]
+
+The export contains partial months and snapshot statuses; calendar coverage does not prove complete commercial capture. Duplicate exclusion is an explicit export-cleaning assumption. Regional and fulfillment comparisons are associations and may reflect different product or order mixes. [M1, M2]
+
+### Conclusion
+
+The saved outputs establish the matched-period decline, its category contributions, regional value concentration, observed cancellation differences and specified quality gaps. They support targeted investigation, while the causes and business impact of any proposed action remain unverified. [E1-E8]
+
+## 8. Evidence register and reproducibility
+
+All numeric findings reference the saved aggregate SQL outputs below. These files are published with the report. They document the analyzed historical snapshot, not a new live extraction. Derived calculations are shown in the findings sections.
+
+| ID | Published evidence file | Used for |
+| --- | --- | --- |
+| E1 | overview.csv | Scope, shipped KPIs, cancellation and missing amounts |
+| E2 | comparable_may_june.csv | Matched value and order changes |
+| E3 | category_decline_contribution.csv | Category changes and contributions |
+| E4 | category_performance.csv | Snapshot category shipped value and shares |
+| E5 | state_performance.csv | Regional shipped values |
+| E6 | fulfillment_operations.csv | Cancellation and return-status rates |
+| E7 | data_quality.csv | Missing amounts and courier conflicts |
+| E8 | order_cancellation_and_aov.csv | Complete-order AOV |
+
+M1: docs/metric_contract.md defines inclusion rules, denominators and exclusions. M2: docs/cleaning_decisions.md documents preparation and duplicate assumptions. Q1: sql/02_business_analysis.sql contains the reviewed query definitions.
+
+Open Query Explorer in the live app to inspect query results, SQL, metric notes and CSV downloads. The editable Power BI report is available as powerbi/CommercePulse.pbix. Dashboard previews in this report use the supplied PDF export and show rounded labels.
+
+Dataset attribution: E-Commerce Sales Dataset on Kaggle, https://www.kaggle.com/datasets/thedevastator/unlock-profits-with-e-commerce-sales-data. Repository: https://github.com/DaksheshGautam/commerce-pulse-analytics. Live app: https://dakshesh-commerce-pulse.streamlit.app/.
+
+### Open the evidence
+
+- [E1: overview.csv](../reports/sql_results/overview.csv)
+- [E2: comparable_may_june.csv](../reports/sql_results/comparable_may_june.csv)
+- [E3: category_decline_contribution.csv](../reports/sql_results/category_decline_contribution.csv)
+- [E4: category_performance.csv](../reports/sql_results/category_performance.csv)
+- [E5: state_performance.csv](../reports/sql_results/state_performance.csv)
+- [E6: fulfillment_operations.csv](../reports/sql_results/fulfillment_operations.csv)
+- [E7: data_quality.csv](../reports/sql_results/data_quality.csv)
+- [E8: order_cancellation_and_aov.csv](../reports/sql_results/order_cancellation_and_aov.csv)
+
+- [M1: Metric definitions](metric_contract.md)
+- [M2: Cleaning decisions](cleaning_decisions.md)
+- [Q1: SQL definitions](../sql/02_business_analysis.sql)
+- [Editable Power BI report](../powerbi/CommercePulse.pbix)
