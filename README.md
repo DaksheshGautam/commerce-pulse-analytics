@@ -13,7 +13,7 @@ By **Dakshesh Gautam**. An analytics portfolio project that takes a historical e
 - **Query Explorer:** 15 reviewed analyses with category, state, fulfillment, customer type and date filters. Charts, CSV downloads and the executed SQL accompany every result.
 - **Ask Groq:** GPT-OSS 120B uses bounded tool calls to combine SQL results with cited project documentation. Gemini provides document-search embeddings. Unsupported profit, customer retention and causal questions are identified explicitly. Provider quota limits can temporarily interrupt chat; Query Explorer remains available.
 - **Metric Guide:** definitions, cleaning decisions and data limitations.
-- **Analytics Report:** executive summary, methodology, four dashboard figures, evidence-backed findings, proposed investigations and limitations.
+- **Analytics report PDF:** the button beneath the app heading opens the [report hosted in the portfolio](https://daksheshgautam.github.io/projects/CommercePulse-Analytics-Report.pdf), with methodology, dashboard figures, evidence-backed findings, proposed investigations and limitations.
 - **Power BI:** four dashboard previews available inside the app. [Download the editable Power BI report](powerbi/CommercePulse.pbix) and open it in Power BI Desktop.
 
 ## Data and methods

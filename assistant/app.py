@@ -1,7 +1,6 @@
 """E-Commerce Sales Analytics: local chat and audited SQL exploration."""
 from datetime import date
 import sys
-import re
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -127,6 +126,7 @@ try:
         service = connect(settings)
 except Exception:
     st.title('E-Commerce Sales Analytics')
+    st.link_button('Open analytics report PDF', 'https://daksheshgautam.github.io/projects/CommercePulse-Analytics-Report.pdf')
     st.error('The sales database is temporarily unavailable. Please try again shortly. The owner can check the database service and Streamlit Secrets.')
     st.stop()
 
@@ -134,6 +134,7 @@ st.session_state.setdefault('messages', [])
 st.session_state.setdefault('api_calls', 0)
 
 st.title('E-Commerce Sales Analytics')
+st.link_button('Open analytics report PDF', 'https://daksheshgautam.github.io/projects/CommercePulse-Analytics-Report.pdf')
 st.markdown('<p class="hero-note">Explore sales and the methods behind the figures—with SQL evidence and cited project documents.</p>', unsafe_allow_html=True)
 overview = service.execute(QuerySpec(analysis='overview'))['rows'][0]
 with st.container(key='summary_kpis'):
@@ -145,7 +146,7 @@ with st.container(key='summary_kpis'):
 st.caption('Full snapshot KPIs · shipped value is a sales proxy · cancellation is a line rate')
 with st.container(key='analysis_workspace'):
     api_counter = st.empty()
-    chat, explorer, guide, report = st.tabs([f'Ask {settings.provider_label}', 'Query Explorer', 'Metric Guide', 'Analytics Report'])
+    chat, explorer, guide = st.tabs([f'Ask {settings.provider_label}', 'Query Explorer', 'Metric Guide'])
 
 
 def update_usage_counter():
@@ -239,28 +240,6 @@ with guide:
     st.markdown((ROOT / 'docs/metric_contract.md').read_text(encoding='utf-8'))
     st.divider()
     st.write('Numeric and citation checks reject unsupported numbers and unknown source IDs. They do not guarantee that every interpretation is correct. Inspect the SQL evidence and source passages for decisions. Embedding requests count toward the session allowance; one-time index builds run separately.')
-
-
-with report:
-    report_text = (ROOT / 'docs/business_findings.md').read_text(encoding='utf-8')
-    report_base = 'https://github.com/DaksheshGautam/commerce-pulse-analytics/blob/main/'
-    report_web = report_text.replace('](../reports/sql_results/', '](' + report_base + 'reports/sql_results/')
-    report_web = report_web.replace('](metric_contract.md)', '](' + report_base + 'docs/metric_contract.md)')
-    report_web = report_web.replace('](cleaning_decisions.md)', '](' + report_base + 'docs/cleaning_decisions.md)')
-    report_web = report_web.replace('](../sql/', '](' + report_base + 'sql/')
-    report_web = report_web.replace('](../powerbi/', '](' + report_base + 'powerbi/')
-    for report_part in re.split(r'(!\[.*?\]\(\.\./reports/screenshots_dark/[^)]+\.png\))', report_web):
-        report_image = re.fullmatch(r'!\[(.*?)\]\(\.\./reports/screenshots_dark/([a-z0-9_]+\.png)\)', report_part)
-        if report_image:
-            st.image(str(ROOT / 'reports/screenshots_dark' / report_image.group(2)),
-                     caption=report_image.group(1), width='stretch')
-        elif report_part.strip():
-            st.markdown(report_part)
-    st.download_button('Download PDF report',
-                       (ROOT / 'reports/CommercePulse-Analytics-Report.pdf').read_bytes(),
-                       'CommercePulse-Analytics-Report.pdf', 'application/pdf', key='analytics_pdf_download')
-    st.download_button('Download analytics report', report_text, 'commerce-pulse-analytics-report.md',
-                       'text/markdown', key='analytics_report_download')
 
 
 with st.expander('About this project · Power BI dashboard'):
