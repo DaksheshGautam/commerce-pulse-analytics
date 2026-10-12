@@ -144,7 +144,7 @@ with st.container(key='summary_kpis'):
 st.caption('Full snapshot KPIs · shipped value is a sales proxy · cancellation is a line rate')
 with st.container(key='analysis_workspace'):
     api_counter = st.empty()
-    chat, explorer, guide = st.tabs([f'Ask {settings.provider_label}', 'Query Explorer', 'Metric Guide'])
+    chat, explorer, guide, report = st.tabs([f'Ask {settings.provider_label}', 'Query Explorer', 'Metric Guide', 'Analytics Report'])
 
 
 def update_usage_counter():
@@ -238,6 +238,13 @@ with guide:
     st.markdown((ROOT / 'docs/metric_contract.md').read_text(encoding='utf-8'))
     st.divider()
     st.write('Numeric and citation checks reject unsupported numbers and unknown source IDs. They do not guarantee that every interpretation is correct. Inspect the SQL evidence and source passages for decisions. Embedding requests count toward the session allowance; one-time index builds run separately.')
+
+
+with report:
+    report_text = (ROOT / 'docs/business_findings.md').read_text(encoding='utf-8')
+    st.markdown(report_text)
+    st.download_button('Download analytics report', report_text, 'commerce-pulse-analytics-report.md',
+                       'text/markdown', key='analytics_report_download')
 
 
 with st.expander('About this project · Power BI dashboard'):
