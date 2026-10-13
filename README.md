@@ -20,7 +20,7 @@ By **Dakshesh Gautam**. An analytics portfolio project that takes a historical e
 
 The Amazon snapshot covers **31 March–29 June 2022**. The model retains 128,975 source lines, flags six duplicate copies and analyses **128,969 lines across 120,378 orders**. Valued shipped sales are **₹69,660,658**, a sales proxy rather than collected or audited revenue. May/June comparisons use days 1–29 in both months.
 
-Python prepares a MySQL star schema with four dimensions and one fact table. Bound SQL parameters, an allowlisted analysis registry, a SELECT-only database account and read-only sessions constrain database access. Remote connections validate the server certificate and hostname. Document retrieval uses four project documents and a prebuilt 17-passage index; generated prose is checked against numeric evidence and known citation IDs.
+Python prepares a MySQL star schema with four dimensions and one fact table. Bound SQL parameters, an allowlisted analysis registry, a SELECT-only database account and read-only sessions constrain database access. Remote connections validate the server certificate and hostname. Document retrieval uses five project documents, including the updated analytics report, and a prebuilt 33-passage index; generated prose is checked against numeric evidence and known citation IDs.
 
 This repository contains the web deployment and an editable Power BI report with an imported data model from the public dataset. Raw source CSV files, database backups and credentials stay outside GitHub. Dataset attribution: [E-Commerce Sales Dataset on Kaggle](https://www.kaggle.com/datasets/thedevastator/unlock-profits-with-e-commerce-sales-data).
 

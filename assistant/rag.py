@@ -18,6 +18,7 @@ from .config import ROOT, Settings
 SOURCES = (
     'docs/metric_contract.md', 'docs/cleaning_decisions.md',
     'docs/data_dictionary.md', 'docs/dataset_inventory.md',
+    'docs/business_findings.md',
 )
 INDEX_PATH = ROOT / 'data/knowledge/index.json'
 FORMAT_VERSION = 1
